@@ -96,6 +96,13 @@ export function updateRiskTask(analysisId, taskId, updates) {
   });
 }
 
+export function bulkUpdateRiskTasks(analysisId, payload) {
+  return request(`/analysis/${analysisId}/risk-tasks/bulk`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function deleteRiskTask(analysisId, taskId) {
   const response = await fetch(`${API_BASE_URL}/analysis/${analysisId}/risk-tasks/${encodeURIComponent(taskId)}`, {
     method: "DELETE",

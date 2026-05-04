@@ -1569,6 +1569,35 @@ h2 {
   text-transform: uppercase;
 }
 
+.bulk-task-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.bulk-task-toolbar span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 720;
+}
+
+.bulk-task-toolbar select,
+.bulk-task-toolbar input {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
 .task-badge-row {
   margin-top: 9px;
 }
@@ -1632,6 +1661,18 @@ h2 {
   grid-template-columns: repeat(4, minmax(120px, 1fr));
   gap: 9px;
   margin-top: 10px;
+}
+
+.task-select-column {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+
+.task-select-column input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--blue);
 }
 
 .task-control,

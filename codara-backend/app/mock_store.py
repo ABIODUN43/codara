@@ -198,6 +198,14 @@ def list_analysis_jobs(repository_id: str | None = None) -> list[AnalysisJob]:
 
 
 def create_repository(payload: RepositoryCreate) -> Repository:
+    if payload.source_type == "github":
+        if not payload.url:
+            raise ValueError("GitHub repository URL is required")
+        from app.services.uploads import fetch_github_repository
+
+        repository_id, full_name, root_path = fetch_github_repository(payload.url, payload.name, payload.branch)
+        return register_github_repository(repository_id, payload.name or full_name, full_name, root_path)
+
     repo = Repository(
         id=f"repo_{uuid4().hex[:10]}",
         name=payload.name,
@@ -210,6 +218,26 @@ def create_repository(payload: RepositoryCreate) -> Repository:
         last_analyzed_at=None,
     )
     repositories.insert(0, repo)
+    _save_state()
+    return repo
+
+
+def register_github_repository(repository_id: str, name: str, full_name: str, root_path: Path) -> Repository:
+    analyzer_result = analyze_python_project(root_path)
+    repo = Repository(
+        id=repository_id,
+        name=name,
+        description=f"Public GitHub repository: {full_name}",
+        source_type="github",
+        language="Python" if analyzer_result.files_scanned else "Unknown",
+        files=analyzer_result.files_scanned,
+        modules=len(analyzer_result.modules),
+        status="ready",
+        last_analyzed_at=utc_now(),
+    )
+    repositories.insert(0, repo)
+    repository_paths[repository_id] = root_path
+    create_analysis(repository_id)
     _save_state()
     return repo
 
@@ -635,6 +663,23 @@ def update_risk_task(
             _save_state()
             return updated
     return None
+
+
+def bulk_update_risk_tasks(
+    analysis_id: str,
+    task_ids: list[str],
+    status: str | None = None,
+    owner: str | None = None,
+    priority: str | None = None,
+    due_date: str | None = None,
+    note: str | None = None,
+) -> list[RiskTask]:
+    updated_tasks = []
+    for task_id in task_ids[:100]:
+        updated = update_risk_task(analysis_id, task_id, status, owner, priority, due_date, note)
+        if updated is not None:
+            updated_tasks.append(updated)
+    return updated_tasks
 
 
 def delete_risk_task(analysis_id: str, task_id: str) -> bool:

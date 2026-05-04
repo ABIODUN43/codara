@@ -19,6 +19,7 @@ class RepositoryCreate(BaseModel):
     name: str
     source_type: Literal["github", "zip", "local"] = "github"
     url: str | None = None
+    branch: str | None = None
 
 
 class RepositoryTimelineEvent(BaseModel):
@@ -117,6 +118,10 @@ class RiskTaskUpdate(BaseModel):
     priority: Literal["low", "medium", "high"] | None = None
     due_date: str | None = None
     note: str | None = None
+
+
+class RiskTaskBulkUpdate(RiskTaskUpdate):
+    task_ids: list[str]
 
 
 class AnalysisSummary(BaseModel):

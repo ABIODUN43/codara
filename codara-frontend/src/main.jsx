@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
 import {
+  bulkUpdateRiskTasks,
   createAnalysis,
   createRepository,
   createRiskTask,
@@ -306,6 +307,31 @@ function App() {
     await handleUpdateRiskTask(task, { owner }, `Task assigned to ${owner}.`);
   }
 
+  async function handleBulkUpdateRiskTasks(taskIds, updates) {
+    if (!taskIds.length) return;
+    setRiskTasks((current) => current.map((task) => (
+      taskIds.includes(task.id) ? { ...task, ...mapTaskUpdateToClient(updates) } : task
+    )));
+    try {
+      const updated = await bulkUpdateRiskTasks(activeAnalysisId, { task_ids: taskIds, ...updates });
+      const mapped = updated.map(mapRiskTask);
+      setRiskTasks((current) => current.map((task) => (
+        mapped.find((item) => item.id === task.id) || task
+      )));
+      await refreshRiskTaskEvents(activeAnalysisId).catch(() => {});
+      setRunStatus({
+        state: "ready",
+        message: `${updated.length} task${updated.length === 1 ? "" : "s"} updated in bulk.`,
+      });
+    } catch {
+      setRunStatus({
+        state: "offline",
+        message: "Bulk task update failed. Check that the backend is running.",
+      });
+      await refreshRiskTasks(activeAnalysisId).catch(() => {});
+    }
+  }
+
   async function handleDeleteRiskTask(task) {
     setRiskTasks((current) => current.filter((item) => item.id !== task.id));
     try {
@@ -346,7 +372,7 @@ function App() {
   async function handleGitHubConnect(payload) {
     setRunStatus({
       state: "running",
-      message: `Registering ${payload.name} from GitHub...`,
+      message: `Fetching and analyzing ${payload.name} from GitHub...`,
     });
 
     try {
@@ -354,19 +380,26 @@ function App() {
         name: payload.name,
         source_type: "github",
         url: payload.url,
+        branch: payload.branch,
       });
       await refreshRepositories();
       setActiveRepositoryId(repo.id);
+      const jobs = await refreshAnalysisJobs(repo.id);
+      const latestJob = jobs.find((job) => job.repositoryId === repo.id) || jobs[0];
+      if (latestJob) {
+        setActiveAnalysisId(latestJob.id);
+        await loadAnalysisData(latestJob.id);
+      }
       await refreshRepositoryTimeline(repo.id);
       await refreshRepositoryIntelligence(repo.id);
       setRunStatus({
         state: "ready",
-        message: `${repo.name} is registered. GitHub cloning and token auth can be added in the integration phase.`,
+        message: `${repo.name} was fetched from GitHub and analyzed. Modules, risks, diagrams, and assistant context are updated.`,
       });
     } catch {
       setRunStatus({
         state: "offline",
-        message: "GitHub repository could not be registered. Check the backend and URL.",
+        message: "GitHub repository could not be fetched. Use a public GitHub URL or upload a ZIP.",
       });
     }
   }
@@ -563,6 +596,7 @@ function App() {
             onCreateRiskTask={handleCreateRiskTask}
             onToggleRiskTask={handleToggleRiskTask}
             onUpdateRiskTask={handleUpdateRiskTask}
+            onBulkUpdateRiskTasks={handleBulkUpdateRiskTasks}
             onAssignRiskTask={handleAssignRiskTask}
             onDeleteRiskTask={handleDeleteRiskTask}
           />
@@ -769,6 +803,16 @@ function mapRiskTaskEvent(event) {
   };
 }
 
+function mapTaskUpdateToClient(updates) {
+  return {
+    ...(updates.status ? { status: updates.status } : {}),
+    ...(updates.owner ? { owner: updates.owner } : {}),
+    ...(updates.priority ? { priority: updates.priority } : {}),
+    ...(updates.due_date !== undefined ? { dueDate: updates.due_date || "" } : {}),
+    ...(updates.note !== undefined ? { note: updates.note || "" } : {}),
+  };
+}
+
 function mapRepositoryIntelligence(intelligence) {
   return {
     repositoryId: intelligence.repository_id,
@@ -960,6 +1004,7 @@ function Workspace({
   onCreateRiskTask,
   onToggleRiskTask,
   onUpdateRiskTask,
+  onBulkUpdateRiskTasks,
   onAssignRiskTask,
   onDeleteRiskTask,
 }) {
@@ -1013,6 +1058,7 @@ function Workspace({
         onCreateTask={onCreateRiskTask}
         onToggleTask={onToggleRiskTask}
         onUpdateTask={onUpdateRiskTask}
+        onBulkUpdateTasks={onBulkUpdateRiskTasks}
         onAssignTask={onAssignRiskTask}
         onDeleteTask={onDeleteRiskTask}
         onSelectIssue={onSelectIssue}
@@ -1042,6 +1088,7 @@ function RiskReviewQueue({
   onCreateTask,
   onToggleTask,
   onUpdateTask,
+  onBulkUpdateTasks,
   onAssignTask,
   onDeleteTask,
   onSelectIssue,
@@ -1221,6 +1268,7 @@ function RiskReviewQueue({
         events={events}
         onToggleTask={onToggleTask}
         onUpdateTask={onUpdateTask}
+        onBulkUpdateTasks={onBulkUpdateTasks}
         onAssignTask={onAssignTask}
         onDeleteTask={onDeleteTask}
         onInspectModule={onInspectModule}
@@ -1229,11 +1277,16 @@ function RiskReviewQueue({
   );
 }
 
-function RiskTaskList({ tasks, events, onToggleTask, onUpdateTask, onAssignTask, onDeleteTask, onInspectModule }) {
+function RiskTaskList({ tasks, events, onToggleTask, onUpdateTask, onBulkUpdateTasks, onAssignTask, onDeleteTask, onInspectModule }) {
   const [taskFilter, setTaskFilter] = useState("all");
   const [ownerFilter, setOwnerFilter] = useState("all");
   const [sortMode, setSortMode] = useState("smart");
   const [groupMode, setGroupMode] = useState("owner");
+  const [selectedTaskIds, setSelectedTaskIds] = useState([]);
+  const [bulkOwner, setBulkOwner] = useState("");
+  const [bulkPriority, setBulkPriority] = useState("");
+  const [bulkStatus, setBulkStatus] = useState("");
+  const [bulkDueDate, setBulkDueDate] = useState("");
   const doneCount = tasks.filter((task) => task.status === "done").length;
   const blockedCount = tasks.filter((task) => task.status === "blocked").length;
   const highPriorityCount = tasks.filter((task) => task.priority === "high" && task.status !== "done").length;
@@ -1254,6 +1307,38 @@ function RiskTaskList({ tasks, events, onToggleTask, onUpdateTask, onAssignTask,
   const sortedTasks = sortTasks(filteredTasks, sortMode);
   const taskGroups = groupTasks(sortedTasks, groupMode);
   const analytics = getTaskAnalytics(tasks);
+  const visibleTaskIds = sortedTasks.map((task) => task.id);
+  const allVisibleSelected = visibleTaskIds.length > 0 && visibleTaskIds.every((id) => selectedTaskIds.includes(id));
+
+  function toggleTaskSelection(taskId) {
+    setSelectedTaskIds((current) => (
+      current.includes(taskId) ? current.filter((id) => id !== taskId) : [...current, taskId]
+    ));
+  }
+
+  function toggleVisibleSelection() {
+    setSelectedTaskIds((current) => (
+      allVisibleSelected
+        ? current.filter((id) => !visibleTaskIds.includes(id))
+        : Array.from(new Set([...current, ...visibleTaskIds]))
+    ));
+  }
+
+  async function applyBulkUpdates() {
+    const updates = {
+      ...(bulkOwner ? { owner: bulkOwner } : {}),
+      ...(bulkPriority ? { priority: bulkPriority } : {}),
+      ...(bulkStatus ? { status: bulkStatus } : {}),
+      ...(bulkDueDate ? { due_date: bulkDueDate } : {}),
+    };
+    if (!Object.keys(updates).length) return;
+    await onBulkUpdateTasks(selectedTaskIds, updates);
+    setSelectedTaskIds([]);
+    setBulkOwner("");
+    setBulkPriority("");
+    setBulkStatus("");
+    setBulkDueDate("");
+  }
 
   return (
     <section className="risk-task-list" aria-label="Risk follow-up tasks">
@@ -1362,6 +1447,33 @@ function RiskTaskList({ tasks, events, onToggleTask, onUpdateTask, onAssignTask,
       </div>
       <TaskAnalyticsPanel analytics={analytics} />
       <TaskActivityFeed events={events} />
+      <div className="bulk-task-toolbar" aria-label="Bulk task actions">
+        <button className="ghost-button" type="button" onClick={toggleVisibleSelection} disabled={!visibleTaskIds.length}>
+          {allVisibleSelected ? "Clear visible" : "Select visible"}
+        </button>
+        <span>{selectedTaskIds.length} selected</span>
+        <select value={bulkOwner} onChange={(event) => setBulkOwner(event.target.value)} aria-label="Bulk assign owner">
+          <option value="">Owner</option>
+          {taskOwners.map((owner) => <option value={owner} key={owner}>{owner}</option>)}
+        </select>
+        <select value={bulkPriority} onChange={(event) => setBulkPriority(event.target.value)} aria-label="Bulk set priority">
+          <option value="">Priority</option>
+          {taskPriorities.map((priority) => <option value={priority} key={priority}>{priority}</option>)}
+        </select>
+        <select value={bulkStatus} onChange={(event) => setBulkStatus(event.target.value)} aria-label="Bulk set status">
+          <option value="">Status</option>
+          {taskStatuses.map((status) => <option value={status} key={status}>{status}</option>)}
+        </select>
+        <input
+          type="date"
+          value={bulkDueDate}
+          onChange={(event) => setBulkDueDate(event.target.value)}
+          aria-label="Bulk set due date"
+        />
+        <button className="primary-button" type="button" onClick={applyBulkUpdates} disabled={!selectedTaskIds.length}>
+          Apply bulk
+        </button>
+      </div>
       {sortedTasks.length ? (
         <div className="task-group-list">
           {taskGroups.map((group) => (
@@ -1373,9 +1485,17 @@ function RiskTaskList({ tasks, events, onToggleTask, onUpdateTask, onAssignTask,
               <div className="task-card-list">
                 {group.tasks.map((task) => (
             <article className={`risk-task ${task.status} ${task.severity} priority-${task.priority} due-${getDueState(task.dueDate)}`} key={task.id}>
-              <button className="task-check" type="button" onClick={() => onToggleTask(task)} aria-label="Toggle task status">
-                {task.status === "done" ? "OK" : ""}
-              </button>
+              <div className="task-select-column">
+                <input
+                  type="checkbox"
+                  checked={selectedTaskIds.includes(task.id)}
+                  onChange={() => toggleTaskSelection(task.id)}
+                  aria-label={`Select ${task.title}`}
+                />
+                <button className="task-check" type="button" onClick={() => onToggleTask(task)} aria-label="Toggle task status">
+                  {task.status === "done" ? "OK" : ""}
+                </button>
+              </div>
               <div>
                 <strong>{task.title}</strong>
                 <span>{task.severity} risk / {task.priority} priority / {task.status}</span>
@@ -2240,6 +2360,7 @@ function RepositoryTimeline({ timeline = [], currentRepository }) {
 function GitHubConnectDrawer({ onConnect, onClose }) {
   const [url, setUrl] = useState("");
   const [name, setName] = useState("");
+  const [branch, setBranch] = useState("");
 
   function inferredName() {
     const cleaned = url.trim().replace(/\.git$/, "");
@@ -2254,6 +2375,7 @@ function GitHubConnectDrawer({ onConnect, onClose }) {
     onConnect({
       url: nextUrl,
       name: name.trim() || inferredName(),
+      branch: branch.trim() || undefined,
     });
   }
 
@@ -2263,7 +2385,7 @@ function GitHubConnectDrawer({ onConnect, onClose }) {
         <div>
           <p className="section-kicker">GitHub intake</p>
           <h2>Connect repository</h2>
-          <p>Register a GitHub source now. Clone/auth automation comes next.</p>
+          <p>Fetch a public GitHub repository and run Codara analysis immediately.</p>
         </div>
         <button className="icon-button" type="button" aria-label="Close GitHub intake" onClick={onClose}>
           X
@@ -2289,11 +2411,20 @@ function GitHubConnectDrawer({ onConnect, onClose }) {
             onChange={(event) => setName(event.target.value)}
           />
         </label>
+        <label>
+          <span>Branch optional</span>
+          <input
+            type="text"
+            placeholder="main"
+            value={branch}
+            onChange={(event) => setBranch(event.target.value)}
+          />
+        </label>
         <div className="github-note">
-          Codara will add this repository to the workspace as a GitHub source. For analysis today, upload a ZIP until GitHub clone/token support is enabled.
+          Public repositories are downloaded as GitHub ZIP archives. Private repo auth and branch browsing come later.
         </div>
         <button className="primary-button" type="submit">
-          Register repository
+          Fetch and analyze
         </button>
       </form>
     </aside>

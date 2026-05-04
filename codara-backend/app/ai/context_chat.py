@@ -1,4 +1,5 @@
 from app.schemas import AnalyzerResult, ChatResponse, Issue
+from app.ai.llm import answer_with_llm
 
 
 def answer_architecture_question(
@@ -6,6 +7,10 @@ def answer_architecture_question(
     analyzer_result: AnalyzerResult,
     issues: list[Issue],
 ) -> ChatResponse:
+    llm_response = answer_with_llm(message, analyzer_result, issues)
+    if llm_response is not None:
+        return llm_response
+
     query = message.lower()
 
     if _mentions(query, ["risk", "issue", "problem", "smell", "warning"]):

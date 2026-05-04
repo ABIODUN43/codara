@@ -25,6 +25,7 @@ from app.schemas import (
     RiskReviewStatus,
     RiskReviewUpdate,
     RiskTask,
+    RiskTaskBulkUpdate,
     RiskTaskCreate,
     RiskTaskEvent,
     RiskTaskUpdate,
@@ -90,7 +91,10 @@ def repositories() -> list[Repository]:
 
 @app.post("/repositories", response_model=Repository, status_code=201)
 def create_repository(payload: RepositoryCreate) -> Repository:
-    return mock_store.create_repository(payload)
+    try:
+        return mock_store.create_repository(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.post("/repositories/upload", response_model=Repository, status_code=201)
@@ -205,6 +209,24 @@ def create_risk_task(analysis_id: str, payload: RiskTaskCreate) -> RiskTask:
     if task is None:
         raise HTTPException(status_code=404, detail="Risk signal not found")
     return task
+
+
+@app.patch("/analysis/{analysis_id}/risk-tasks/bulk", response_model=list[RiskTask])
+def bulk_update_risk_tasks(analysis_id: str, payload: RiskTaskBulkUpdate) -> list[RiskTask]:
+    if mock_store.get_analysis(analysis_id) is None:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+    tasks = mock_store.bulk_update_risk_tasks(
+        analysis_id,
+        payload.task_ids,
+        payload.status,
+        payload.owner,
+        payload.priority,
+        payload.due_date,
+        payload.note,
+    )
+    if not tasks:
+        raise HTTPException(status_code=404, detail="No matching risk tasks found")
+    return tasks
 
 
 @app.patch("/analysis/{analysis_id}/risk-tasks/{task_id}", response_model=RiskTask)
