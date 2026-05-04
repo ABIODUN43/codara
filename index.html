@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Codara</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Codara navigation">
+        <div class="brand-row">
+          <div class="brand-mark" aria-hidden="true">C</div>
+          <div>
+            <p class="brand-name">Codara</p>
+            <p class="brand-subtitle">Architecture assistant</p>
+          </div>
+        </div>
+
+        <nav class="nav-stack">
+          <button class="nav-item active" type="button" data-view-target="workspace" aria-current="page">
+            <span class="icon" aria-hidden="true">W</span>
+            Workspace
+          </button>
+          <button class="nav-item" type="button" data-view-target="repositories">
+            <span class="icon" aria-hidden="true">R</span>
+            Repositories
+          </button>
+          <button class="nav-item" type="button" data-view-target="diagrams">
+            <span class="icon" aria-hidden="true">D</span>
+            Diagrams
+          </button>
+          <button class="nav-item" type="button" data-view-target="observability">
+            <span class="icon" aria-hidden="true">O</span>
+            Observability
+          </button>
+        </nav>
+
+        <div class="repo-panel">
+          <p class="panel-label">Current repository</p>
+          <div class="repo-card">
+            <div class="repo-dot"></div>
+            <div>
+              <p class="repo-name">codara-api</p>
+              <p class="repo-meta">FastAPI - 128 files</p>
+            </div>
+          </div>
+          <button class="ghost-button" type="button" data-view-target="repositories">Upload repository</button>
+        </div>
+
+        <div class="status-card">
+          <div class="status-line">
+            <span class="pulse"></span>
+            Analyzer ready
+          </div>
+          <p>Backend, vector DB, and worker queue are responding.</p>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow" id="view-eyebrow">MVP workspace</p>
+            <h1 id="view-title">Understand the architecture before changing the code.</h1>
+          </div>
+          <div class="topbar-actions">
+            <button class="icon-button" type="button" aria-label="Refresh analysis" id="refresh-button">R</button>
+            <button class="primary-button" type="button" id="primary-action">New analysis</button>
+          </div>
+        </header>
+
+        <section class="view active" data-view="workspace">
+          <section class="analysis-grid" aria-label="Analysis summary">
+            <article class="metric-card">
+              <p class="metric-label">Modules mapped</p>
+              <strong>42</strong>
+              <span>+8 since last run</span>
+            </article>
+            <article class="metric-card">
+              <p class="metric-label">Risk signals</p>
+              <strong>7</strong>
+              <span>2 circular dependencies</span>
+            </article>
+            <article class="metric-card">
+              <p class="metric-label">Embeddings</p>
+              <strong>1,284</strong>
+              <span>Semantic search ready</span>
+            </article>
+          </section>
+
+          <section class="main-grid">
+            <section class="assistant-panel" aria-label="Codara assistant">
+              <div class="panel-header">
+                <div>
+                  <h2>Ask Codara</h2>
+                  <p>Query the repo using architecture context.</p>
+                </div>
+                <span class="mode-pill">Context aware</span>
+              </div>
+
+              <div class="conversation">
+                <div class="message assistant">
+                  <p class="message-name">Codara</p>
+                  <p>
+                    I found the main request flow through <strong>api/routes</strong>,
+                    <strong>services/analysis</strong>, and <strong>workers/analyzer</strong>.
+                    The queue boundary is the most important place to monitor.
+                  </p>
+                </div>
+                <div class="message user">
+                  <p class="message-name">You</p>
+                  <p>Show me the modules handling authentication.</p>
+                </div>
+                <div class="message assistant">
+                  <p class="message-name">Codara</p>
+                  <p>
+                    Authentication appears in <strong>auth/service.py</strong>,
+                    <strong>api/dependencies.py</strong>, and <strong>models/user.py</strong>.
+                    I would inspect token validation before refactoring request guards.
+                  </p>
+                </div>
+              </div>
+
+              <form class="prompt-bar">
+                <input aria-label="Ask Codara" placeholder="Ask about modules, risks, flows, or refactoring..." />
+                <button type="submit" aria-label="Send prompt">Send</button>
+              </form>
+            </section>
+
+            <aside class="insights-panel" aria-label="Architecture insights">
+              <div class="panel-header compact">
+                <div>
+                  <h2>Architecture map</h2>
+                  <p>Critical path preview</p>
+                </div>
+              </div>
+
+              <div class="flow-map" aria-label="Repository architecture flow">
+                <div class="node frontend">Frontend</div>
+                <div class="connector"></div>
+                <div class="node backend">FastAPI</div>
+                <div class="connector split"></div>
+                <div class="node worker">Worker</div>
+                <div class="node ai">AI layer</div>
+                <div class="connector"></div>
+                <div class="node data">Vector DB</div>
+              </div>
+
+              <div class="issue-list">
+                <div class="issue-item high">
+                  <span></span>
+                  <div>
+                    <p>Queue latency rising</p>
+                    <small>Large repo analysis may block worker capacity.</small>
+                  </div>
+                </div>
+                <div class="issue-item medium">
+                  <span></span>
+                  <div>
+                    <p>Circular dependency</p>
+                    <small>services.analysis to diagram.generator</small>
+                  </div>
+                </div>
+                <div class="issue-item low">
+                  <span></span>
+                  <div>
+                    <p>Dead code candidate</p>
+                    <small>legacy_parser.py has no inbound references.</small>
+                  </div>
+                </div>
+              </div>
+            </aside>
+          </section>
+        </section>
+
+        <section class="view" data-view="repositories">
+          <section class="repo-workbench">
+            <div class="upload-zone">
+              <div>
+                <p class="section-kicker">Repository intake</p>
+                <h2>Connect or upload a codebase</h2>
+                <p>Start analysis from GitHub, a local ZIP, or a mounted project folder.</p>
+              </div>
+              <div class="upload-actions">
+                <button class="primary-button" type="button">Connect GitHub</button>
+                <button class="ghost-button" type="button">Upload ZIP</button>
+              </div>
+            </div>
+
+            <div class="repo-toolbar">
+              <label class="search-box">
+                <span>Search</span>
+                <input type="search" placeholder="Filter repositories..." />
+              </label>
+              <div class="segmented-control" aria-label="Repository filter">
+                <button class="active" type="button">All</button>
+                <button type="button">Healthy</button>
+                <button type="button">Needs review</button>
+              </div>
+            </div>
+
+            <div class="repo-list">
+              <article class="repo-row selected">
+                <div>
+                  <h3>codara-api</h3>
+                  <p>FastAPI backend, analyzer workers, AI pipeline</p>
+                </div>
+                <div class="repo-stats">
+                  <span>128 files</span>
+                  <span>42 modules</span>
+                  <strong class="good">Ready</strong>
+                </div>
+              </article>
+              <article class="repo-row">
+                <div>
+                  <h3>codara-web</h3>
+                  <p>Frontend workspace, diagrams, onboarding UI</p>
+                </div>
+                <div class="repo-stats">
+                  <span>86 files</span>
+                  <span>19 modules</span>
+                  <strong class="warn">Review</strong>
+                </div>
+              </article>
+              <article class="repo-row">
+                <div>
+                  <h3>codara-observe</h3>
+                  <p>Go metrics collector, Docker worker monitoring</p>
+                </div>
+                <div class="repo-stats">
+                  <span>54 files</span>
+                  <span>12 modules</span>
+                  <strong class="good">Ready</strong>
+                </div>
+              </article>
+            </div>
+          </section>
+        </section>
+
+        <section class="view" data-view="diagrams">
+          <section class="diagram-layout">
+            <div class="diagram-stage">
+              <div class="diagram-toolbar">
+                <div>
+                  <p class="section-kicker">System diagram</p>
+                  <h2>Critical architecture path</h2>
+                </div>
+                <div class="segmented-control">
+                  <button class="active" type="button">Service</button>
+                  <button type="button">Data</button>
+                  <button type="button">Risk</button>
+                </div>
+              </div>
+
+              <div class="diagram-canvas" aria-label="Architecture diagram preview">
+                <div class="diagram-node n1">Frontend</div>
+                <div class="diagram-node n2">API gateway</div>
+                <div class="diagram-node n3">Analyzer</div>
+                <div class="diagram-node n4">Queue</div>
+                <div class="diagram-node n5">AI/RAG</div>
+                <div class="diagram-node n6">Vector DB</div>
+                <div class="diagram-node n7 danger">Diagram service</div>
+                <svg class="diagram-lines" viewBox="0 0 820 420" aria-hidden="true">
+                  <path d="M150 96 C230 96 220 94 300 94" />
+                  <path d="M392 112 C440 140 462 170 490 220" />
+                  <path d="M392 78 C470 50 515 52 590 70" />
+                  <path d="M578 240 C618 230 650 210 690 180" />
+                  <path d="M640 104 C672 118 690 134 706 152" />
+                  <path class="risk-line" d="M398 126 C440 230 475 292 540 324" />
+                </svg>
+              </div>
+            </div>
+
+            <aside class="diagram-side">
+              <div class="side-card">
+                <h3>Bottleneck</h3>
+                <p>Analyzer output feeds both AI/RAG and diagram generation. Separate graph formatting from analysis storage.</p>
+              </div>
+              <div class="side-card">
+                <h3>Critical path</h3>
+                <p>Upload -> API gateway -> Analyzer -> Queue -> AI/RAG -> Vector DB.</p>
+              </div>
+              <div class="side-card">
+                <h3>Diagram actions</h3>
+                <button class="ghost-button" type="button">Export PNG</button>
+                <button class="ghost-button" type="button">Open graph JSON</button>
+              </div>
+            </aside>
+          </section>
+        </section>
+
+        <section class="view" data-view="observability">
+          <section class="ops-grid">
+            <article class="service-card healthy">
+              <p class="metric-label">FastAPI backend</p>
+              <strong>Healthy</strong>
+              <span>p95 latency 186ms</span>
+            </article>
+            <article class="service-card healthy">
+              <p class="metric-label">Worker queue</p>
+              <strong>Stable</strong>
+              <span>4 active, 2 pending</span>
+            </article>
+            <article class="service-card warning">
+              <p class="metric-label">Vector DB</p>
+              <strong>Watch</strong>
+              <span>ingestion +18% this hour</span>
+            </article>
+            <article class="service-card healthy">
+              <p class="metric-label">Go collector</p>
+              <strong>Online</strong>
+              <span>scrape interval 15s</span>
+            </article>
+          </section>
+
+          <section class="observability-layout">
+            <div class="metrics-panel">
+              <div class="panel-header compact">
+                <div>
+                  <h2>Metrics trend</h2>
+                  <p>Analysis latency and queue depth</p>
+                </div>
+              </div>
+              <div class="bar-chart" aria-label="Metrics bar chart">
+                <span style="height: 42%"></span>
+                <span style="height: 55%"></span>
+                <span style="height: 48%"></span>
+                <span style="height: 62%"></span>
+                <span style="height: 58%"></span>
+                <span style="height: 74%"></span>
+                <span style="height: 68%"></span>
+                <span style="height: 51%"></span>
+              </div>
+            </div>
+
+            <div class="logs-panel">
+              <div class="panel-header compact">
+                <div>
+                  <h2>Live logs</h2>
+                  <p>Structured events from analysis services</p>
+                </div>
+              </div>
+              <div class="log-stream">
+                <p><span>info</span> analysis request received for codara-api</p>
+                <p><span>info</span> analyzer started: 128 files queued</p>
+                <p><span>warn</span> vector ingestion slower than baseline</p>
+                <p><span>info</span> diagram generation completed in 2.4s</p>
+              </div>
+            </div>
+
+            <aside class="alerts-panel">
+              <div class="panel-header compact">
+                <div>
+                  <h2>Alert rules</h2>
+                  <p>Prometheus Alertmanager targets</p>
+                </div>
+              </div>
+              <div class="issue-list">
+                <div class="issue-item high">
+                  <span></span>
+                  <div>
+                    <p>Analyzer failure rate</p>
+                    <small>Alert if failures exceed 5% for 10 minutes.</small>
+                  </div>
+                </div>
+                <div class="issue-item medium">
+                  <span></span>
+                  <div>
+                    <p>Queue depth</p>
+                    <small>Alert if pending jobs stay above 20.</small>
+                  </div>
+                </div>
+                <div class="issue-item low">
+                  <span></span>
+                  <div>
+                    <p>Health endpoint</p>
+                    <small>Alert when any service is unresponsive.</small>
+                  </div>
+                </div>
+              </div>
+            </aside>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

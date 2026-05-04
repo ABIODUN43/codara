@@ -1,0 +1,14 @@
+node_modules/
+dist/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.env
+.env.*
+codara-backend/uploads/
+codara-backend/storage/state.json
+codara-backend/.pytest_cache/
+codara-frontend/.vite/
+*.log

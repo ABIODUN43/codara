@@ -1,0 +1,145 @@
+export const mockData = {
+  metrics: [
+    { label: "Modules mapped", value: "42", detail: "+8 since last run" },
+    { label: "Risk signals", value: "7", detail: "2 circular dependencies" },
+    { label: "Embeddings", value: "1,284", detail: "Semantic search ready" },
+  ],
+  messages: [
+    {
+      id: "m1",
+      role: "assistant",
+      body: "I found the main request flow through api/routes, services/analysis, and workers/analyzer. The queue boundary is the most important place to monitor.",
+      citedFiles: ["api/routes.py", "services/analysis.py", "workers/analyzer.py"],
+      relatedNodes: ["services.analysis", "workers.analyzer"],
+      confidence: { label: "Strong context", level: "strong", detail: "5 sources" },
+    },
+    {
+      id: "m2",
+      role: "user",
+      body: "Show me the modules handling authentication.",
+    },
+    {
+      id: "m3",
+      role: "assistant",
+      body: "Authentication appears in auth/service.py, api/dependencies.py, and models/user.py. I would inspect token validation before refactoring request guards.",
+      citedFiles: ["auth/service.py", "api/dependencies.py", "models/user.py"],
+      relatedNodes: ["auth.service", "api.dependencies"],
+      confidence: { label: "Strong context", level: "strong", detail: "5 sources" },
+    },
+  ],
+  flow: [
+    { label: "Frontend", kind: "frontend", connector: "" },
+    { label: "FastAPI", kind: "backend", connector: "split" },
+    { label: "Worker", kind: "worker", connector: "" },
+    { label: "AI layer", kind: "ai", connector: "" },
+    { label: "Vector DB", kind: "data", connector: "" },
+  ],
+  issues: [
+    {
+      severity: "high",
+      title: "Queue latency rising",
+      detail: "Large repo analysis may block worker capacity.",
+    },
+    {
+      severity: "medium",
+      title: "Circular dependency",
+      detail: "services.analysis to diagram.generator",
+    },
+    {
+      severity: "low",
+      title: "Dead code candidate",
+      detail: "legacy_parser.py has no inbound references.",
+    },
+  ],
+  repositories: [
+    {
+      id: "repo_codara_api",
+      name: "codara-api",
+      description: "FastAPI backend, analyzer workers, AI pipeline",
+      files: 128,
+      modules: 42,
+      status: "Ready",
+      language: "Python",
+      selected: true,
+    },
+    {
+      id: "repo_codara_web",
+      name: "codara-web",
+      description: "Frontend workspace, diagrams, onboarding UI",
+      files: 86,
+      modules: 19,
+      status: "Review",
+      language: "TypeScript",
+    },
+    {
+      id: "repo_codara_observe",
+      name: "codara-observe",
+      description: "Go metrics collector, Docker worker monitoring",
+      files: 54,
+      modules: 12,
+      status: "Ready",
+      language: "Go",
+    },
+  ],
+  diagramNodes: [
+    { label: "Frontend", className: "n1" },
+    { label: "API gateway", className: "n2" },
+    { label: "Analyzer", className: "n3" },
+    { label: "Queue", className: "n4" },
+    { label: "AI/RAG", className: "n5" },
+    { label: "Vector DB", className: "n6" },
+    { label: "Diagram service", className: "n7 danger" },
+  ],
+  diagramNotes: [
+    {
+      title: "Bottleneck",
+      body: "Analyzer output feeds both AI/RAG and diagram generation. Separate graph formatting from analysis storage.",
+    },
+    {
+      title: "Critical path",
+      body: "Upload -> API gateway -> Analyzer -> Queue -> AI/RAG -> Vector DB.",
+    },
+  ],
+  services: [
+    { label: "FastAPI backend", status: "Healthy", detail: "p95 latency 186ms", state: "healthy" },
+    { label: "Worker queue", status: "Stable", detail: "4 active, 2 pending", state: "healthy" },
+    { label: "Vector DB", status: "Watch", detail: "ingestion +18% this hour", state: "warning" },
+    { label: "Go collector", status: "Online", detail: "scrape interval 15s", state: "healthy" },
+  ],
+  analysisJobs: [
+    {
+      id: "analysis_codara_api_latest",
+      repositoryId: "repo_codara_api",
+      repositoryName: "codara-api",
+      status: "completed",
+      progress: 100,
+      filesProcessed: 128,
+      startedAt: "2026-04-30T17:18:00+00:00",
+      completedAt: "2026-04-30T17:20:00+00:00",
+    },
+  ],
+  trend: [42, 55, 48, 62, 58, 74, 68, 51],
+  logs: [
+    { level: "info", body: "analysis request received for codara-api" },
+    { level: "info", body: "analyzer started: 128 files queued" },
+    { level: "warn", body: "vector ingestion slower than baseline" },
+    { level: "info", body: "diagram generation completed in 2.4s" },
+  ],
+  alerts: [
+    {
+      severity: "high",
+      title: "Analyzer failure rate",
+      detail: "Alert if failures exceed 5% for 10 minutes.",
+    },
+    {
+      severity: "medium",
+      title: "Queue depth",
+      detail: "Alert if pending jobs stay above 20.",
+    },
+    {
+      severity: "low",
+      title: "Health endpoint",
+      detail: "Alert when any service is unresponsive.",
+    },
+  ],
+};
