@@ -1008,9 +1008,11 @@ function Workspace({
         issues={issues}
         reviewStatuses={riskReviewStatuses}
         tasks={riskTasks}
+        events={riskTaskEvents}
         onReviewStatus={onRiskReviewStatus}
         onCreateTask={onCreateRiskTask}
         onToggleTask={onToggleRiskTask}
+        onUpdateTask={onUpdateRiskTask}
         onAssignTask={onAssignRiskTask}
         onDeleteTask={onDeleteRiskTask}
         onSelectIssue={onSelectIssue}
@@ -1035,9 +1037,11 @@ function RiskReviewQueue({
   issues = [],
   reviewStatuses = {},
   tasks = [],
+  events = [],
   onReviewStatus,
   onCreateTask,
   onToggleTask,
+  onUpdateTask,
   onAssignTask,
   onDeleteTask,
   onSelectIssue,
@@ -1214,9 +1218,9 @@ function RiskReviewQueue({
       )}
       <RiskTaskList
         tasks={tasks}
-        events={riskTaskEvents}
+        events={events}
         onToggleTask={onToggleTask}
-        onUpdateTask={onUpdateRiskTask}
+        onUpdateTask={onUpdateTask}
         onAssignTask={onAssignTask}
         onDeleteTask={onDeleteTask}
         onInspectModule={onInspectModule}
