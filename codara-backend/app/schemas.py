@@ -137,7 +137,7 @@ class AnalysisSummary(BaseModel):
 class CodeModule(BaseModel):
     path: str
     module_name: str
-    language: Literal["python"]
+    language: Literal["python", "javascript", "typescript"]
     imports: list[str]
     functions: list[str]
     classes: list[str]

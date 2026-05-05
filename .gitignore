@@ -8,7 +8,7 @@ venv/
 .env
 .env.*
 codara-backend/uploads/
-codara-backend/storage/state.json
+codara-backend/storage/
 codara-backend/.pytest_cache/
 codara-frontend/.vite/
 *.log

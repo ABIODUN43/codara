@@ -4,7 +4,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from app.ai.context_chat import answer_architecture_question
-from app.analyzers.python_analyzer import analyze_python_project
+from app.analyzers.codebase_analyzer import analyze_codebase_project
 from app.analyzers.risk_engine import generate_issues
 from app.schemas import (
     AlertRule,
@@ -223,13 +223,13 @@ def create_repository(payload: RepositoryCreate) -> Repository:
 
 
 def register_github_repository(repository_id: str, name: str, full_name: str, root_path: Path) -> Repository:
-    analyzer_result = analyze_python_project(root_path)
+    analyzer_result = analyze_codebase_project(root_path)
     repo = Repository(
         id=repository_id,
         name=name,
         description=f"Public GitHub repository: {full_name}",
         source_type="github",
-        language="Python" if analyzer_result.files_scanned else "Unknown",
+        language=_language_summary(analyzer_result),
         files=analyzer_result.files_scanned,
         modules=len(analyzer_result.modules),
         status="ready",
@@ -243,13 +243,13 @@ def register_github_repository(repository_id: str, name: str, full_name: str, ro
 
 
 def register_uploaded_repository(repository_id: str, name: str, root_path: Path) -> Repository:
-    analyzer_result = analyze_python_project(root_path)
+    analyzer_result = analyze_codebase_project(root_path)
     repo = Repository(
         id=repository_id,
         name=name,
         description="Uploaded ZIP repository",
         source_type="zip",
-        language="Python" if analyzer_result.files_scanned else "Unknown",
+        language=_language_summary(analyzer_result),
         files=analyzer_result.files_scanned,
         modules=len(analyzer_result.modules),
         status="ready",
@@ -395,7 +395,7 @@ def get_repository_intelligence(repository_id: str) -> RepositoryIntelligenceSum
 
 
 def create_analysis(repository_id: str) -> AnalysisJob:
-    analyzer_result = analyze_python_project(_root_for_repository(repository_id))
+    analyzer_result = analyze_codebase_project(_root_for_repository(repository_id))
     job = AnalysisJob(
         id=f"analysis_{uuid4().hex[:10]}",
         repository_id=repository_id,
@@ -463,18 +463,30 @@ def _repository_next_action(
         return f"Review dependency boundaries around {top_hotspot}."
     if analyzer_result.files_scanned:
         return "Generate the onboarding report and document module ownership."
-    return "Upload a Python repository or run analysis on a supported codebase."
+    return "Upload a supported repository or run analysis on a Python, JavaScript, or TypeScript codebase."
 
 
 def _repository_intelligence_rationale(analyzer_result: AnalyzerResult, generated_issues: list[Issue]) -> str:
     if not analyzer_result.files_scanned:
-        return "No supported Python files were available for architecture scoring."
+        return "No supported code files were available for architecture scoring."
     return (
         f"Score uses {len(analyzer_result.modules)} mapped modules, "
         f"{len(analyzer_result.dependencies)} dependency edges, "
         f"{len(generated_issues)} risk signals, and "
         f"{len(analyzer_result.circular_dependencies)} circular dependency cycles."
     )
+
+
+def _language_summary(analyzer_result: AnalyzerResult) -> str:
+    languages = sorted({module.language for module in analyzer_result.modules})
+    if not languages:
+        return "Unknown"
+    labels = {
+        "python": "Python",
+        "javascript": "JavaScript",
+        "typescript": "TypeScript",
+    }
+    return " + ".join(labels.get(language, language.title()) for language in languages)
 
 
 def get_summary(analysis_id: str) -> AnalysisSummary:
@@ -496,10 +508,10 @@ def get_summary(analysis_id: str) -> AnalysisSummary:
         risk_signals=len(generated_issues),
         embeddings=analyzer_result.files_scanned * 214,
         summary=(
-            "Codara analyzed the source with the Python AST analyzer, mapping modules, "
+            "Codara analyzed the source with the multi-language codebase analyzer, mapping modules, "
             "imports, functions, classes, and internal dependency edges."
             if analyzer_result.files_scanned
-            else "No Python modules were detected yet. Upload a Python repository or connect a supported source to generate architecture intelligence."
+            else "No supported modules were detected yet. Upload a Python, JavaScript, or TypeScript repository to generate architecture intelligence."
         ),
         key_modules=key_modules,
     )
@@ -761,12 +773,12 @@ def get_onboarding_report(analysis_id: str) -> OnboardingReport:
 
     if analyzer_result.files_scanned:
         overview = (
-            f"Codara scanned {analyzer_result.files_scanned} Python files, mapped "
+            f"Codara scanned {analyzer_result.files_scanned} supported code files, mapped "
             f"{len(analyzer_result.modules)} modules, and found "
             f"{len(analyzer_result.dependencies)} internal dependency edges."
         )
     else:
-        overview = "No supported Python modules were found in this analysis yet."
+        overview = "No supported code modules were found in this analysis yet."
 
     return OnboardingReport(
         analysis_id=analysis_id,
@@ -1084,7 +1096,7 @@ def get_alert_rules() -> list[AlertRule]:
 
 def get_live_analyzer_result(analysis_id: str | None = None) -> AnalyzerResult:
     root = _root_for_analysis(analysis_id) if analysis_id else repository_paths["repo_codara_api"]
-    return analyze_python_project(root)
+    return analyze_codebase_project(root)
 
 
 def answer_chat(message: str, repository_id: str) -> ChatResponse:

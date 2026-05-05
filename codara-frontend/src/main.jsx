@@ -417,7 +417,7 @@ function App() {
     } catch {
       setRunStatus({
         state: "offline",
-        message: `${repo.name} could not be analyzed. Try the default Codara backend or upload a Python ZIP.`,
+        message: `${repo.name} could not be analyzed. Try the default Codara backend or upload a supported ZIP.`,
       });
     }
   }
@@ -482,7 +482,7 @@ function App() {
 
     setRunStatus({
       state: "offline",
-      message: `No module detail found for ${moduleNameOrPath}. Try running analysis on a Python repository.`,
+    message: `No module detail found for ${moduleNameOrPath}. Try running analysis on a supported repository.`,
     });
   }
 
@@ -545,7 +545,7 @@ function App() {
       setSearchStatus(results.length ? `${results.length} code results found.` : "No matching code context found.");
     } catch {
       setSearchResults([]);
-      setSearchStatus("Search unavailable. Run analysis on a Python repository first.");
+      setSearchStatus("Search unavailable. Run analysis on a supported repository first.");
     }
   }
 
@@ -565,7 +565,7 @@ function App() {
     } catch {
       setRunStatus({
         state: "offline",
-        message: "Onboarding report could not be generated. Run analysis on a Python repository first.",
+        message: "Onboarding report could not be generated. Run analysis on a supported repository first.",
       });
     }
   }
@@ -2449,7 +2449,7 @@ function ModuleExplorer({ analyzerResult, onInspectModule }) {
           <h2>Extracted modules</h2>
           <p>
             {analyzerResult
-              ? `${analyzerResult.files_scanned} Python files scanned from the live analyzer.`
+              ? `${analyzerResult.files_scanned} code files scanned from the live analyzer.`
               : "Analyzer module data will appear here when the backend is available."}
           </p>
         </div>
@@ -2907,7 +2907,7 @@ function Diagrams({ diagram, mode, onModeChange, analyzerResult, onInspectModule
                 <span>edges</span>
               </div>
             </div>
-            <p>Generated from Python imports extracted by the backend analyzer.</p>
+            <p>Generated from imports extracted by the backend analyzer.</p>
           </div>
           <div className="side-card mode-card">
             <h3>{modeCopy[mode].title}</h3>
